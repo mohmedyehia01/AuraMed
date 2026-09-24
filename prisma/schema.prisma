@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+ 
+}
+
+// 1. Enum الأدوار والحالات
+enum Role {
+  ADMIN
+  PATIENT
+  DOCTOR
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  PARTIALLY_PAID
+  REFUNDED
+}
+
+// 2. جدول المستخدمين (Authentication Base)
+model User {
+  id        String   @id @default(cuid())
+  userName  String
+  email     String   @unique
+  password  String   // كلمة المرور المشفّرة
+  role      Role     @default(PATIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // علاقة One-to-One مع المريض والطبيب
+  patient   Patient?
+  doctor    Doctor?
+}
+
+// 3. جدول المريض (Patient)
+model Patient {
+  id                String   @id @default(cuid())
+  phoneNumber       String   @db.VarChar(15)
+  address           String?  @db.VarChar(250)
+  insuranceNumber   String?  @db.VarChar(50)
+  insuranceProvider String?  @db.VarChar(100)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // ربط المريض بجدول User (Foreign Key = String)
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // العلاقات المنسدلة
+  visitHistory      VisitHistory[]
+  appointments      Appointment[]
+  medicalDocument   MedicalDocument[]
+  invoice           Invoice[]
+}
+
+// 4. جدول الطبيب (Doctor)
+model Doctor {
+  id              String   @id @default(cuid())
+  phoneNumber     String   @db.VarChar(15)
+  specialization  String   @db.VarChar(100)
+  bio             String?  @db.Text
+  isAvailable     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // ربط الطبيب بجدول User (Foreign Key = String)
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // المفتاح الأجنبي للقسم (نوعه String ليطابق Department)
+  departmentId    String?
+  department      Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  // العلاقات
+  appointments    Appointment[]
+  medicalDocument MedicalDocument[]
+}
+
+// 5. سجل الزيارات (VisitHistory)
+model VisitHistory {
+  id           String   @id @default(cuid())
+  visitDate    DateTime @default(now())
+  doctorName   String   @db.VarChar(100)
+  diagnosis    String?  @db.Text
+  prescription String?  @db.Text
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // المفتاح الأجنبي String ليطابق id المريض
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// 6. المستندات والتقارير الطبية (MedicalDocument)
+model MedicalDocument {
+  id        String   @id @default(cuid())
+  fileUrl   String   @db.Text
+  fileName  String?  @db.VarChar(250)
+  fileType  String?  @db.VarChar(50)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // المفاتيح الأجنبية String
+  patientId String
+  doctorId  String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+}
+
+// 7. القسم (Department)
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(50)
+  description String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  doctor      Doctor[]
+}
+
+// 8. الخدمات الطبية (Service)
+model Service {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(100)
+  price       Decimal  @db.Decimal(10, 2)
+  description String?  @db.Text
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appointment Appointment[]
+}
+
+// 9. المواعيد (Appointment)
+model Appointment {
+  id              String            @id @default(cuid())
+  appointmentDate DateTime          @default(now())
+  status          AppointmentStatus @default(PENDING)
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // المفاتيح الأجنبية String
+  patientId       String
+  patient         Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  doctorId        String
+  doctor          Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  serviceId       String
+  service         Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  invoice         Invoice?
+}
+
+// 10. الفواتير (Invoice)
+model Invoice {
+  id            String        @id @default(cuid())
+  amount        Decimal       @db.Decimal(10, 2)
+  paidAmount    Decimal       @default(0.00) @db.Decimal(10, 2)
+  status        PaymentStatus @default(UNPAID)
+  paymentDate   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // المفاتيح الأجنبية String
+  patientId     String
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  appointmentId String        @unique
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
