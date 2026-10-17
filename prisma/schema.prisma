@@ -46,19 +46,22 @@ model User {
 
 // 3. جدول المريض (Patient)
 model Patient {
-  id                String   @id @default(cuid())
-  phoneNumber       String   @db.VarChar(15)
-  address           String?  @db.VarChar(250)
-  insuranceNumber   String?  @db.VarChar(50)
-  insuranceProvider String?  @db.VarChar(100)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                String    @id @default(cuid())
+  firstName         String?
+  lastName          String?
+  dateOfBirth       DateTime?
+  nationalId        String?   @unique 
+  phoneNumber       String
+  address           String?
+  insuranceNumber   String?
+  insuranceProvider String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  email             String? 
 
-  // ربط المريض بجدول User (Foreign Key = String)
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // العلاقات المنسدلة
   visitHistory      VisitHistory[]
   appointments      Appointment[]
   medicalDocument   MedicalDocument[]
