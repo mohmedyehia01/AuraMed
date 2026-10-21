@@ -41,8 +41,23 @@ export const CreateDoctorSchema = z.object({
     z.string().optional()
   ),
 });
+
+export const CreateDepartmentSchema = z.object({
+  name :      z.string().trim().min(1,{message:"Department name is required"}).max(50,{message:"department name is too long"}),
+
+  description :  z.string().trim().min(1,{message:"description is required"}), 
+
+})
+
+// Update Schemas
+export const UpdateDepartmentSchema = CreateDepartmentSchema.partial();
 export const UpdateDoctorSchema = CreateDoctorSchema.omit({ userId: true }).partial();
+
+// TypeScript types
 export type CreatePatientInput = z.infer<typeof CreatePatientSchema>;
 export type UpdatePatientInput = z.infer<typeof UpdatePatientSchema>;
 export type CreateDoctorInput = z.infer<typeof CreateDoctorSchema>;
 export type UpdateDoctorInput = z.infer<typeof UpdateDoctorSchema>;
+export  type CreateDepartmentInput = z.infer<typeof CreateDepartmentSchema>;
+export type UpdateDepartmentInput = z.infer<typeof UpdateDepartmentSchema>;
+

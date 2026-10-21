@@ -126,8 +126,8 @@ model MedicalDocument {
 // 7. القسم (Department)
 model Department {
   id          String   @id @default(cuid())
-  name        String   @db.VarChar(50)
-  description String   @db.Text
+  name        String   @db.VarChar(50) @unique
+  description String   @db.Text 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   doctor      Doctor[]
